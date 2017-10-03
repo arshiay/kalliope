@@ -1,0 +1,82 @@
+# Use this playbook with ansible to install kalliope on a remote Rpi
+# After a fresh install of a Rpi, you only need to active ssh
+# sudo systemctl enable ssh
+# sudo systemctl start ssh
+# the target pi must be declared in your inventory (e.g: /etc/ansible/hosts)
+# e.g: kalliope_rpi ansible_host=192.0.2.50
+
+- name: Install Kalliope on Rpi
+  hosts: "{{ targets | default('kalliope_rpi') }}"
+  remote_user: pi
+  become: True
+
+  vars:
+    kalliope_branch_to_install: "master"
+
+  tasks:
+    - name: Set hostname
+      hostname:
+        name: "kalliope"
+
+    - name: Install required packages
+      apt:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - git
+        - python-dev
+        - libsmpeg0
+        - libttspico-utils
+        - libsmpeg0
+        - flac
+        - dialog
+        - libffi-dev
+        - libssl-dev
+        - portaudio19-dev
+        - build-essential
+        - sox
+        - libatlas3-base
+        - mplayer
+        - libyaml-dev
+        - libpython2.7-dev
+        - pulseaudio
+        - pulseaudio-utils
+        - libav-tools
+        - libportaudio0
+        - libportaudio2
+        - libportaudiocpp0
+        - portaudio19-dev
+        - python-yaml
+        - python-pycparser
+        - python-paramiko
+        - python-markupsafe
+        - apt-transport-https
+
+    - name: Clone the project
+      git:
+        repo: "https://github.com/kalliope-project/kalliope.git"
+        dest: "/home/pi/"
+        version: "{{ kalliope_branch_to_install }}"
+        accept_hostkey: yes
+
+    - name: Install Kalliope
+      shell: python setup.py install
+      args:
+        chdir: /home/pi/kalliope
+
+    - name: Clone starter kits
+      git:
+        repo: "{{ item }}"
+        dest: "/home/pi/"
+        version: "master"
+        accept_hostkey: yes
+      with_items:
+        - "https://github.com/kalliope-project/kalliope_starter_cs.git"
+        - "https://github.com/kalliope-project/kalliope_starter_it.git"
+        - "https://github.com/kalliope-project/kalliope_starter_fr"
+        - "https://github.com/kalliope-project/kalliope_starter_en.git"
+        - "https://github.com/kalliope-project/kalliope_starter_de.git"
+
+    - name: Clean history
+      shell: "cat /dev/null > /home/pi/bash_history && history -c"
+
